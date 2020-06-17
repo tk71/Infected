@@ -17,6 +17,7 @@ namespace InfectedLibrary
         public List<Log> Logs { get; set; }
 
         private List<Employee> _employee { get; set; }
+        private const int _lunchtime = 12;
 
         public Scenario()
         {
@@ -64,6 +65,40 @@ namespace InfectedLibrary
                 }
 
                 floorNumber++;
+            }
+        }
+
+        private void Infection(bool isLunchtime)
+        {
+            var rnd = new Random(Guid.NewGuid().GetHashCode());
+
+            foreach (var employee in _employee)
+            {
+                if (employee.CurrentRoomType == RoomType.Hospital || employee.CurrentRoomType == RoomType.Testing ||
+                    (employee.Status != InfectionState.Immune && employee.Status != InfectionState.Well)) continue;
+
+                if (isLunchtime)
+                {
+                    // only check breakrooms
+                    if (employee.CurrentRoomType == RoomType.Breakroom)
+                    {
+                        _employee.Where(contact => contact.CurrentRoom == employee.CurrentRoom &&
+                        contact.Status != InfectionState.Immune && contact.Status != InfectionState.Well).ToList().
+                        ForEach(contact =>
+                        {
+                            if (rnd.Next(0, 101) < employee.ChanceOfInfection) employee.Status = InfectionState.Infected;
+                        });
+                    }
+                }
+                else
+                {
+                    _employee.Where(contact => contact.CurrentRoom == employee.CurrentRoom &&
+                        contact.Status != InfectionState.Immune && contact.Status != InfectionState.Well).ToList().
+                        ForEach(contact =>
+                        {
+                            if (rnd.Next(0, 101) < employee.ChanceOfInfection) employee.Status = InfectionState.Infected;
+                        });
+                }
             }
         }
 
@@ -137,7 +172,7 @@ namespace InfectedLibrary
             {
                 // employees in the hospital or in-testing do not need to make a log entry; if lunch only employees in break rooms need to make a log entry
                 if (employee.CurrentRoomType == RoomType.Hospital || employee.CurrentRoomType == RoomType.Testing || 
-                    (timeOfDay.Hours == 12 && employee.CurrentRoomType != RoomType.Breakroom)) continue;
+                    (timeOfDay.Hours == _lunchtime && employee.CurrentRoomType != RoomType.Breakroom)) continue;
 
                 string roomType;
                 switch (employee.CurrentRoomType)
@@ -269,23 +304,20 @@ namespace InfectedLibrary
                 while (timeOfDay.Hours < 17)
                 {
                     // migrate employees to breakrooms or meeting rooms
-                    Migration(timeOfDay.Hours == 12);
+                    Migration(timeOfDay.Hours == _lunchtime);
 
                     // check to see whether anyone becomes infected
-                    foreach (var employee in _employee)
-                    {
-
-                    }
+                    Infection(timeOfDay.Hours == _lunchtime);
 
                     // record logs
                     RecordLogEntries(StartDate, timeOfDay);
 
                     // put migrated employees back in thier offices
-                    _employee.Where(item => item.CurrentRoomType == RoomType.Breakroom || item.CurrentRoomType == RoomType.Meeting).ToList().
-                        ForEach(item =>
+                    _employee.Where(employee => employee.CurrentRoomType == RoomType.Breakroom || employee.CurrentRoomType == RoomType.Meeting).ToList().
+                        ForEach(employee =>
                         {
-                            item.CurrentRoom = item.AssignedRoom;
-                            item.CurrentRoomType = RoomType.Office;
+                            employee.CurrentRoom = employee.AssignedRoom;
+                            employee.CurrentRoomType = RoomType.Office;
                         });
 
                     timeOfDay += TimeSpan.FromHours(1);
