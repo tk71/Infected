@@ -130,6 +130,8 @@ namespace InfectedLibrary
                     while (people < floor.PeopleAssigned)
                     {
                         var person = PersonGenerator.NewPerson();
+                        if (!EmployeeIds.Add(person.Id)) continue;
+
                         person.AssignedBuilding = building.BuildingNumber;
                         person.AssignedFloor = floor.FloorNumber;
                         person.AssignedRoom = floor.Rooms[roomIndex].RoomNumber;
