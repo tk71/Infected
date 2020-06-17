@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using InfectedLibrary.Models;
 using InfectedLibrary.Data;
 using System.Text;
@@ -10,19 +9,19 @@ namespace InfectedLibrary
 {
     public class Scenario
     {
-        public string Messages { get; set; }
+        public List<Floor> Floors { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public List<Building> Buildings { get; set; }
+        public string Messages { get; set; }
         public List<Log> Logs { get; set; }
 
-        private HashSet<string> EmployeeIds { get; set; }
+        private List<Person> _employee { get; set; }
 
         public Scenario()
         {
-            Buildings = new List<Building>();
+            Floors = new List<Floor>();
             Logs = new List<Log>();
-            EmployeeIds = new HashSet<string>();
+            _employee = new List<Person>();
         }
 
         public bool RunScenario()
@@ -32,18 +31,15 @@ namespace InfectedLibrary
 
             Messages = string.Empty;
             Logs.Clear();
-            EmployeeIds.Clear();
+            _employee.Clear();
             
             // make sure there is at least one building for the scenario; if not, use the default scenario
-            if (Buildings.Count == 0)
+            if (Floors.Count == 0)
             {
-                messages.Append("Building count was zero. Default scenario was used." + Environment.NewLine);
-                Buildings = Defaults.Scenario().Buildings;
+                messages.Append("Floor count was zero. Default scenario was used." + Environment.NewLine);
+                Floors = Defaults.Floors();
             }
 
-            // build the screnario
-            BuildScenario();
-            
             // if no start date, default to today
             if (StartDate == DateTime.MinValue)
             {
@@ -58,6 +54,9 @@ namespace InfectedLibrary
                 messages.Append("End date was missing or less than start date. " + EndDate.ToString("MM-dd-yyyy") + " was used." + Environment.NewLine);
             }
 
+            // build the screnario
+            BuildScenario();
+            
             // loop through days; Mon-Fri are workdays
             while (StartDate.Date != EndDate.Date)
             {
@@ -70,29 +69,36 @@ namespace InfectedLibrary
                 // start workday time at 8a
                 var timeOfDay = new DateTime(StartDate.Year, StartDate.Month, StartDate.Day, 8, 0, 0).TimeOfDay;
                 
+                // if anyone is symptomatic, check to see if they decide to get tested
+                //
+
+                // if anyone was being test, check to see if they go back to work or into hospital
+                //
+
+                // anyone that has been in the hospital 5 days can go back to work and is considered immune
+                //
+
+                // this loop is where the work day processing happens
                 while (timeOfDay.Hours < 17)
                 {
-                    // migrate people to meeting rooms
+                    // check for lunch
+                    //
+                    // migrate people to meeting rooms or breakrooms
+                    //
+                    // check to see whether anyone becomes infected
+                    //
 
-
-                    if (timeOfDay.Hours == 12)
-                    {
-                        // only people in lunch rooms need to make a log entry
-                    }
-                    else
-                    {
-                        // everyone has to make a log entry
-                        MakeLogEntries(StartDate, timeOfDay);
-                    }
-
+                    // record logs
+                    RecordLogEntries(StartDate, timeOfDay);
+                    
                     timeOfDay += TimeSpan.FromHours(1);
                 }
 
+                // anyone in the hospital 1-4 days gets credit for a day
+                //
+
                 StartDate = StartDate.AddDays(1);
             }
-
-            // gather logs
-            GatherLogs();
 
             Messages = messages.ToString();
             Debug.WriteLine(Messages);
@@ -101,121 +107,125 @@ namespace InfectedLibrary
 
         private void BuildScenario()
         {
+            var employees = new HashSet<string>();
             var patientZero = false;
-            var buildingNumber = 1;
-            foreach (var building in Buildings)
+            
+            var floorNumber = 1;
+            foreach (var floor in Floors)
             {
-                building.BuildingNumber = buildingNumber;
-
-                var floorNumber = 1;
-                foreach (var floor in building.Floors)
+                // create a variable to hold office numbers and personnel allocations
+                var offices = new List<Tuple<string, int>>();
+                for (int i = 0; i < floor.OfficeRooms; i++)
                 {
-                    floor.FloorNumber = floorNumber;
-
-                    // create office rooms
-                    var roomNumber = 1;
-                    for (int i = 0; i < floor.OfficeRooms; i++)
-                    {
-                        floor.Rooms.Add(new Room()
-                        {
-                            RoomNumber = int.Parse((floorNumber * 100 + roomNumber).ToString()),
-                            RoomType = RoomType.office
-                        });
-                        roomNumber++;
-                    }
-
-                    // create people and assign them to an office
-                    var people = 0;
-                    var roomIndex = 0;
-                    while (people < floor.PeopleAssigned)
-                    {
-                        var person = PersonGenerator.NewPerson();
-                        if (!EmployeeIds.Add(person.Id)) continue;
-
-                        person.AssignedBuilding = building.BuildingNumber;
-                        person.AssignedFloor = floor.FloorNumber;
-                        person.AssignedRoom = floor.Rooms[roomIndex].RoomNumber;
-                        if (!patientZero)
-                        {
-                            person.Status = InfectionState.Infected;
-                            patientZero = true;
-                        }
-                        floor.Rooms[roomIndex].People.Add(person);
-
-                        people++;
-                        roomIndex++;
-                        if (roomIndex == floor.Rooms.Count) roomIndex = 0;
-                    }
-
-                    // create meeting rooms
-                    for (int i = 0; i < floor.MeetingRooms; i++)
-                    {
-                        floor.Rooms.Add(new Room()
-                        {
-                            RoomNumber = int.Parse((floorNumber * 100 + roomNumber).ToString()),
-                            RoomType = RoomType.meeting
-                        });
-                        roomNumber++;
-                    }
-
-                    // create breakrooms
-                    for (int i = 0; i < floor.Breakrooms; i++)
-                    {
-                        floor.Rooms.Add(new Room()
-                        {
-                            RoomNumber = int.Parse((floorNumber * 100 + roomNumber).ToString()),
-                            RoomType = RoomType.breakroom
-                        });
-                        roomNumber++;
-                    }
-
-                    floorNumber++;
+                    offices.Add(new Tuple<string, int>((floorNumber * 100 + i).ToString(), 0));
                 }
 
-                buildingNumber++;
+                // create people and assign them to an office
+                var people = 0;
+                var roomIndex = 0;
+                while (people < floor.PeopleAssigned)
+                {
+                    var person = PersonGenerator.NewPerson();
+                    if (!employees.Add(person.Id)) continue;
+
+                    person.AssignedRoom = offices[roomIndex].Item1;
+                    person.CurrentRoom = person.AssignedRoom;
+                    person.CurrentRoomType = RoomType.Office;
+                    if (!patientZero)
+                    {
+                        person.Status = InfectionState.Infected;
+                        patientZero = true;
+                    }
+                    _employee.Add(person);
+
+                    people++;
+                    roomIndex++;
+                    if (roomIndex == offices.Count) roomIndex = 0;
+                }
+
+                floorNumber++;
             }
         }
 
-        private void MakeLogEntries(DateTime dateTime, TimeSpan timeOfDay)
+        private void RecordLogEntries(DateTime dateTime, TimeSpan timeOfDay)
         {
-            // from each person still in a building
-            foreach (var building in Buildings)
+            foreach (var person in _employee)
             {
-                foreach (var floor in building.Floors)
+                // people in the hospital or in-testing do not need to make a log entry; if lunch only people in break rooms need to make a log entry
+                if (person.CurrentRoomType == RoomType.Hospital || person.CurrentRoomType == RoomType.Testing || 
+                    (timeOfDay.Hours == 12 && person.CurrentRoomType != RoomType.Breakroom)) continue;
+
+                string roomType;
+                switch (person.CurrentRoomType)
                 {
-                    foreach (var room in floor.Rooms)
-                    {
-                        foreach (var person in room.People)
-                        {
-                            person.LogEntry(dateTime, timeOfDay, building.BuildingNumber, floor.FloorNumber, room);
-                        }
-                    }
+                    case RoomType.Breakroom:
+                        roomType = "Breakroom";
+                        break;
+                    case RoomType.Hospital:
+                        roomType = "Hospital";
+                        break;
+                    case RoomType.Meeting:
+                        roomType = "Meeting";
+                        break;
+                    case RoomType.Office:
+                        roomType = "Office";
+                        break;
+                    case RoomType.Testing:
+                        roomType = "Testing";
+                        break;
+                    default:
+                        roomType = string.Empty;
+                        break;
                 }
-            }
 
-            // from anyone in the hospital
-            Hospital.Rooms.ForEach(room => room.People.ForEach(person => person.LogEntry(dateTime, timeOfDay, 0, 0, room)));
-        }
-
-        private void GatherLogs()
-        {
-            // from each person still in a building
-            foreach (var building in Buildings)
-            {
-                foreach (var floor in building.Floors)
+                string status;
+                switch (person.Status)
                 {
-                    foreach (var room in floor.Rooms)
-                    {
-                        foreach (var person in room.People)
-                        {
-                            Logs.AddRange(person.Log);
-                        }
-                    }
+                    case InfectionState.Well:
+                        status = "Well";
+                        break;
+                    case InfectionState.Infected:
+                        status = "Infected";
+                        break;
+                    case InfectionState.Incubation:
+                        status = "Incubation";
+                        break;
+                    case InfectionState.Symptomatic:
+                        status = "Symptomatic";
+                        break;
+                    case InfectionState.Immune:
+                        status = "Immune";
+                        break;
+                    default:
+                        status = string.Empty;
+                        break;
                 }
-            }
 
-            // from anyone in the hospital
-            Hospital.Rooms.ForEach(room => room.People.ForEach(person => Logs.AddRange(person.Log)));
+                var log = new Log()
+                {
+                    Created = new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, timeOfDay.Hours, 0, 0),
+                    Id = person.Id,
+                    FirstName = person.FirstName,
+                    LastName = person.LastName,
+                    Sex = person.Sex, 
+                    CurrentRoom = person.CurrentRoom,
+                    CurrentRoomType = roomType,
+                    Status = status
+                };
+
+                // contacts will be employees in the same room
+                foreach (var contact in _employee)
+                {
+                    if (person.Id != contact.Id && person.CurrentRoom == contact.CurrentRoom) log.Contacts.Add(new Contact()
+                    {
+                        Id = contact.Id, 
+                        FirstName = contact.FirstName, 
+                        LastName = contact.LastName
+                    });
+                }
+
+                Logs.Add(log);
+            }
         }
     }
 }

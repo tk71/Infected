@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace InfectedLibrary.Models
 {
@@ -10,11 +9,15 @@ namespace InfectedLibrary.Models
         public string Id { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public int Building { get; set; }
-        public int Floor { get; set; }
-        public int Room { get; set; }
-        public string RoomType { get; set; }
+        public string Sex { get; set; }
+        public string CurrentRoom { get; set; }
+        public string CurrentRoomType { get; set; }
         public string Status { get; set; }
         public List<Contact> Contacts { get; set; }
+
+        public Log()
+        {
+            Contacts = new List<Contact>();
+        }
     }
 }

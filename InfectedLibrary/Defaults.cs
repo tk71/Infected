@@ -1,18 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using InfectedLibrary.Models;
 
 namespace InfectedLibrary
 {
     public static class Defaults
     {
-        public static Scenario Scenario()
+        public static List<Floor> Floors()
         {
-            // scenario default is 1 building with 5 floors
-            var scenario = new Scenario();
-            var building = new Building();
-
+            // default is 5 floors configured as follows
+            var floors = new List<Floor>();
+            
             int assigned;
             int offices;
             int breakRooms;
@@ -54,18 +52,16 @@ namespace InfectedLibrary
                         break;
                 }
 
-                building.Floors.Add(new Floor()
+                floors.Add(new Floor()
                 {
-                    FloorNumber = i + 1,
                     PeopleAssigned = assigned,
                     OfficeRooms = offices,
                     Breakrooms = breakRooms,
                     MeetingRooms = meetingRooms
                 });
             }
-
-            scenario.Buildings.Add(building);
-            return scenario;
+            
+            return floors;
         }
     }
 }

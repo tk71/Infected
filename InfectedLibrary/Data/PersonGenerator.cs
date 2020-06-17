@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Text;
 using InfectedLibrary.Models;
 
 namespace InfectedLibrary.Data
@@ -103,9 +100,9 @@ namespace InfectedLibrary.Data
         public static Person NewPerson()
         {
             var rnd = new Random(Guid.NewGuid().GetHashCode());
-            var sex = rnd.Next(0, 1) == 0 ? "F" : "M";
-            var fname = sex == "F" ? FirstNamesFemale[rnd.Next(0, FirstNamesFemale.Length -1)] : FirstNamesMale[rnd.Next(0, FirstNamesMale.Length -1)];
-            var lname = LastNames[rnd.Next(0, LastNames.Length - 1)];
+            var sex = rnd.Next(0, 2) == 0 ? "F" : "M";
+            var fname = sex == "F" ? FirstNamesFemale[rnd.Next(0, FirstNamesFemale.Length)] : FirstNamesMale[rnd.Next(0, FirstNamesMale.Length)];
+            var lname = LastNames[rnd.Next(0, LastNames.Length)];
             lname = lname.Replace(lname.Substring(1), lname.Substring(1).ToLower());
 
             return new Person()

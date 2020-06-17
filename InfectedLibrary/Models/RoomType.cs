@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace InfectedLibrary.Models
 {
-    public enum RoomType
+    internal enum RoomType
     {
-        office,
-        breakroom,
-        meeting, 
-        hospital
+        Breakroom,
+        Hospital,
+        Meeting,
+        Office,
+        Testing
     }
 }

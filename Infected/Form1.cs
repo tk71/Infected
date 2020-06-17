@@ -17,7 +17,7 @@ namespace Infected
 {
     public partial class Form1 : Form
     {
-        private Scenario _scenario = Defaults.Scenario();
+        private Scenario _scenario;
 
         public Form1()
         {
@@ -28,18 +28,21 @@ namespace Infected
         {
             var scenarioFile = Application.StartupPath + @"\scenario.json";
 
-            // check for a building file
+            _scenario = new Scenario();
+
+            // check for a scenario file
             if (!File.Exists(scenarioFile))
             {
-                // if no building file, then attempt to create one with the default building
+                // if no scenario file, then attempt to create one with default floors
+                _scenario.Floors = Defaults.Floors();
                 try
                 {
                     using (var ms = new MemoryStream())
                     {
                         using (var sw = new StreamWriter(scenarioFile))
                         {
-                            var serializer = new DataContractJsonSerializer(_scenario.GetType());
-                            serializer.WriteObject(ms, _scenario);
+                            var serializer = new DataContractJsonSerializer(_scenario.Floors.GetType());
+                            serializer.WriteObject(ms, _scenario.Floors);
                             sw.Write(Encoding.ASCII.GetString(ms.ToArray()));
                         }
                     }
@@ -52,43 +55,44 @@ namespace Infected
             }
             else
             {
-                // a building file exists, so attempt to load it
+                // a scenario file exists, so attempt to load it
                 using (var sr = new StreamReader(scenarioFile))
                 {
                     using (var ms = sr.BaseStream)
                     {
-                        var serializer = new DataContractJsonSerializer(_scenario.GetType());
-                        _scenario = serializer.ReadObject(ms) as Scenario;
+                        var serializer = new DataContractJsonSerializer(_scenario.Floors.GetType());
+                        _scenario.Floors = serializer.ReadObject(ms) as List<Floor>;
 
                         if (_scenario is null)
                         {
-                            _scenario = Defaults.Scenario();
                             MessageBox.Show("Could not load scenario file.",
                                 "Scenario File Issue", MessageBoxButtons.OK);
+                            _scenario.Floors = Defaults.Floors();
                         }
                     }
                 }
             }
 
             _scenario.RunScenario();
+            
+            // export logs
             var logs = _scenario.Logs;
             var outputFile = Application.StartupPath + @"\output.csv";
             if (File.Exists(outputFile)) File.Delete(outputFile);
             using (var sw = new StreamWriter(outputFile))
             {
-                sw.WriteLine("Log Date,Employee Id,First Name,Last Name," +
-                        "Building Number,Floor Number,Room Number,Room Type,Infection Status,Exposure List");
+                sw.WriteLine("Log Date,Log Time,Employee Id,First Name,Last Name,Sex,Room Number,Room Type,Status,Exposure List");
                 foreach (var log in logs)
                 {
-                    string contacts;
-                    using (var ms = new MemoryStream())
+                    var contacts = new StringBuilder();
+                    foreach (var contact in log.Contacts)
                     {
-                        var serializer = new DataContractJsonSerializer(log.Contacts.GetType());
-                        serializer.WriteObject(ms, log.Contacts);
-                        contacts = Encoding.ASCII.GetString(ms.ToArray());
+                        if (contacts.Length != 0) contacts.Append(",");
+                        contacts.Append(contact.Id + " " + contact.FirstName + " " + contact.LastName);
                     }
-                    sw.WriteLine(log.Created.ToString("MM-dd-yyyy") + "," + log.Id + "," + log.FirstName + ","+ log.LastName + "," +
-                        log.Building + "," + log.Floor + "," + log.Room + "," + log.RoomType + "," + log.Status + "," + contacts);
+                    sw.WriteLine(log.Created.ToString("MM-dd-yyyy") + "," + log.Created.ToString("hh:mm tt") + "," + 
+                        log.Id + "," + log.FirstName + ","+ log.LastName + "," + log.Sex + "," +
+                        log.CurrentRoom + "," + log.CurrentRoomType + "," + log.Status + "," + contacts);
                 }
             }
         }
