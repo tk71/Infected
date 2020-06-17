@@ -2,7 +2,7 @@
 
 namespace InfectedLibrary.Models
 {
-    internal class Person
+    internal class Employee
     {
         public string Id { get; set; }
         public string FirstName { get; set; }

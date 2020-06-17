@@ -3,13 +3,13 @@ using InfectedLibrary.Models;
 
 namespace InfectedLibrary.Data
 {
-    internal static class PersonGenerator
+    internal static class EmployeeGenerator
     {
         private static string[] FirstNamesFemale { get; set; }
         private static string[] FirstNamesMale { get; set; }
         private static string[] LastNames { get; set; }
 
-        static PersonGenerator()
+        static EmployeeGenerator()
         {
             // female first names are top 300 from the US Social Security Frequently Occuring Given Names from 2000
             FirstNamesFemale = new string[] { "Emily","Hannah","Madison","Ashley","Sarah","Alexis","Samantha","Jessica","Elizabeth","Taylor",
@@ -97,7 +97,7 @@ namespace InfectedLibrary.Data
                 "MARSH","MCBRIDE","OWEN","SOLIS","PHAM","LANG","PRATT"};
         }
 
-        public static Person NewPerson()
+        public static Employee NewEmployee()
         {
             var rnd = new Random(Guid.NewGuid().GetHashCode());
             var sex = rnd.Next(0, 2) == 0 ? "F" : "M";
@@ -105,7 +105,7 @@ namespace InfectedLibrary.Data
             var lname = LastNames[rnd.Next(0, LastNames.Length)];
             lname = lname.Replace(lname.Substring(1), lname.Substring(1).ToLower());
 
-            return new Person()
+            return new Employee()
             {
                 Id = Guid.NewGuid().ToString().ToUpper().Replace("-", string.Empty).Substring(0, 11),
                 FirstName = fname,

@@ -54,7 +54,7 @@ namespace InfectedLibrary
 
                 floors.Add(new Floor()
                 {
-                    PeopleAssigned = assigned,
+                    EmployeesAssigned = assigned,
                     OfficeRooms = offices,
                     Breakrooms = breakRooms,
                     MeetingRooms = meetingRooms

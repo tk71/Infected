@@ -16,18 +16,18 @@ namespace InfectedLibrary
         public string Messages { get; set; }
         public List<Log> Logs { get; set; }
 
-        private List<Person> _employee { get; set; }
+        private List<Employee> _employee { get; set; }
 
         public Scenario()
         {
             Floors = new List<Floor>();
             Logs = new List<Log>();
-            _employee = new List<Person>();
+            _employee = new List<Employee>();
         }
 
         private void BuildScenario()
         {
-            var employees = new HashSet<string>();
+            var employeeIdValidation = new HashSet<string>();
             var patientZero = false;
             
             var floorNumber = 1;
@@ -40,25 +40,25 @@ namespace InfectedLibrary
                     offices.Add((floorNumber * 100 + i).ToString());
                 }
 
-                // create people and assign them to an office
-                var people = 0;
+                // create employees and assign them to an office
+                var employees = 0;
                 var roomIndex = 0;
-                while (people < floor.PeopleAssigned)
+                while (employees < floor.EmployeesAssigned)
                 {
-                    var person = PersonGenerator.NewPerson();
-                    if (!employees.Add(person.Id)) continue;
+                    var employee = EmployeeGenerator.NewEmployee();
+                    if (!employeeIdValidation.Add(employee.Id)) continue;
 
-                    person.AssignedRoom = offices[roomIndex];
-                    person.CurrentRoom = person.AssignedRoom;
-                    person.CurrentRoomType = RoomType.Office;
+                    employee.AssignedRoom = offices[roomIndex];
+                    employee.CurrentRoom = employee.AssignedRoom;
+                    employee.CurrentRoomType = RoomType.Office;
                     if (!patientZero)
                     {
-                        person.Status = InfectionState.Infected;
+                        employee.Status = InfectionState.Infected;
                         patientZero = true;
                     }
-                    _employee.Add(person);
+                    _employee.Add(employee);
 
-                    people++;
+                    employees++;
                     roomIndex++;
                     if (roomIndex == offices.Count) roomIndex = 0;
                 }
@@ -82,22 +82,22 @@ namespace InfectedLibrary
                     for (int i = 0; i < floor.Breakrooms; i++)
                     {
                         rooms.Add("Breakroom " + floorNumber + ((char)(i + 65)).ToString());
-                        breakroomUsage += floor.PeopleAssigned;
+                        breakroomUsage += floor.EmployeesAssigned;
                     }
                     breakroomUsage *= .25f; // 25% of employees will use breakrooms
 
-                    var people = 0;
+                    var employees = 0;
                     var roomIndex = 0;
-                    while (people < breakroomUsage)
+                    while (employees < breakroomUsage)
                     {
-                        var person = _employee[rnd.Next(0, _employee.Count)];
-                        if (person.CurrentRoomType == RoomType.Breakroom || person.CurrentRoomType == RoomType.Hospital || 
-                            person.CurrentRoomType == RoomType.Testing) continue;
+                        var employee = _employee[rnd.Next(0, _employee.Count)];
+                        if (employee.CurrentRoomType == RoomType.Breakroom || employee.CurrentRoomType == RoomType.Hospital ||
+                            employee.CurrentRoomType == RoomType.Testing) continue;
 
-                        person.CurrentRoom = rooms[roomIndex];
-                        person.CurrentRoomType = RoomType.Breakroom;
+                        employee.CurrentRoom = rooms[roomIndex];
+                        employee.CurrentRoomType = RoomType.Breakroom;
 
-                        people++;
+                        employees++;
                         roomIndex++;
                         if (roomIndex == rooms.Count) roomIndex = 0;
                     }
@@ -112,17 +112,17 @@ namespace InfectedLibrary
 
                     foreach (var room in rooms)
                     {
-                        var people = 0;
-                        while (people < room.Item2)
+                        var employees = 0;
+                        while (employees < room.Item2)
                         {
-                            var person = _employee[rnd.Next(0, _employee.Count)];
-                            if (person.CurrentRoomType == RoomType.Meeting || person.CurrentRoomType == RoomType.Hospital ||
-                                person.CurrentRoomType == RoomType.Testing) continue;
+                            var employee = _employee[rnd.Next(0, _employee.Count)];
+                            if (employee.CurrentRoomType == RoomType.Meeting || employee.CurrentRoomType == RoomType.Hospital ||
+                                employee.CurrentRoomType == RoomType.Testing) continue;
 
-                            person.CurrentRoom = room.Item1;
-                            person.CurrentRoomType = RoomType.Meeting;
+                            employee.CurrentRoom = room.Item1;
+                            employee.CurrentRoomType = RoomType.Meeting;
 
-                            people++;
+                            employees++;
                         }
                     }
                 }
@@ -133,14 +133,14 @@ namespace InfectedLibrary
 
         private void RecordLogEntries(DateTime dateTime, TimeSpan timeOfDay)
         {
-            foreach (var person in _employee)
+            foreach (var employee in _employee)
             {
-                // people in the hospital or in-testing do not need to make a log entry; if lunch only people in break rooms need to make a log entry
-                if (person.CurrentRoomType == RoomType.Hospital || person.CurrentRoomType == RoomType.Testing || 
-                    (timeOfDay.Hours == 12 && person.CurrentRoomType != RoomType.Breakroom)) continue;
+                // employees in the hospital or in-testing do not need to make a log entry; if lunch only employees in break rooms need to make a log entry
+                if (employee.CurrentRoomType == RoomType.Hospital || employee.CurrentRoomType == RoomType.Testing || 
+                    (timeOfDay.Hours == 12 && employee.CurrentRoomType != RoomType.Breakroom)) continue;
 
                 string roomType;
-                switch (person.CurrentRoomType)
+                switch (employee.CurrentRoomType)
                 {
                     case RoomType.Breakroom:
                         roomType = "Breakroom";
@@ -163,7 +163,7 @@ namespace InfectedLibrary
                 }
 
                 string status;
-                switch (person.Status)
+                switch (employee.Status)
                 {
                     case InfectionState.Well:
                         status = "Well";
@@ -188,11 +188,11 @@ namespace InfectedLibrary
                 var log = new Log()
                 {
                     Created = new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, timeOfDay.Hours, 0, 0),
-                    Id = person.Id,
-                    FirstName = person.FirstName,
-                    LastName = person.LastName,
-                    Sex = person.Sex, 
-                    CurrentRoom = person.CurrentRoom,
+                    Id = employee.Id,
+                    FirstName = employee.FirstName,
+                    LastName = employee.LastName,
+                    Sex = employee.Sex, 
+                    CurrentRoom = employee.CurrentRoom,
                     CurrentRoomType = roomType,
                     Status = status
                 };
@@ -200,7 +200,7 @@ namespace InfectedLibrary
                 // contacts will be employees in the same room
                 foreach (var contact in _employee)
                 {
-                    if (person.Id != contact.Id && person.CurrentRoom == contact.CurrentRoom) log.Contacts.Add(new Contact()
+                    if (employee.Id != contact.Id && employee.CurrentRoom == contact.CurrentRoom) log.Contacts.Add(new Contact()
                     {
                         Id = contact.Id, 
                         FirstName = contact.FirstName, 
@@ -268,16 +268,19 @@ namespace InfectedLibrary
                 // this loop is where the work day processing happens
                 while (timeOfDay.Hours < 17)
                 {
-                    // migrate people to breakrooms or meeting rooms
+                    // migrate employees to breakrooms or meeting rooms
                     Migration(timeOfDay.Hours == 12);
 
                     // check to see whether anyone becomes infected
-                    //
+                    foreach (var employee in _employee)
+                    {
+
+                    }
 
                     // record logs
                     RecordLogEntries(StartDate, timeOfDay);
 
-                    // put migrated people back in thier offices
+                    // put migrated employees back in thier offices
                     _employee.Where(item => item.CurrentRoomType == RoomType.Breakroom || item.CurrentRoomType == RoomType.Meeting).ToList().
                         ForEach(item =>
                         {
