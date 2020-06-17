@@ -19,6 +19,7 @@ namespace InfectedLibrary.Models
         public int AssignedBuilding { get; set; }
         public int AssignedFloor { get; set; }
         public int AssignedRoom { get; set; }
+        public float InfectionRate { get; set; }
         public int DaysSick { get; set; }
         public int InfectionTime { get; set; }
         public int IncubationTime { get; set; }
@@ -29,20 +30,23 @@ namespace InfectedLibrary.Models
             set {
                 status = value;
 
+                Random rnd;
                 switch (status)
                 {
                     case InfectionState.Well:
+                        InfectionRate = 0.02f;
                         break;
                     case InfectionState.Infected:
                         DaysSick = 1;
                         InfectionTime = 3;
-                        var rnd = new Random(Guid.NewGuid().GetHashCode());
-                        IncubationTime = rnd.Next(3, 7);
-                        SymptomaticTime = rnd.Next(6, 11);
                         break;
                     case InfectionState.Incubation:
+                        rnd = new Random(Guid.NewGuid().GetHashCode());
+                        IncubationTime = rnd.Next(3, 7);
                         break;
                     case InfectionState.Symptomatic:
+                        rnd = new Random(Guid.NewGuid().GetHashCode());
+                        SymptomaticTime = rnd.Next(6, 11);
                         break;
                     case InfectionState.Immune:
                         break;

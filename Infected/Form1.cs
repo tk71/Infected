@@ -77,7 +77,7 @@ namespace Infected
             using (var sw = new StreamWriter(outputFile))
             {
                 sw.WriteLine("Log Date,Employee Id,First Name,Last Name," +
-                        "Building Number,Floor Number,Room Number,Room Type,Last Status,Exposure List");
+                        "Building Number,Floor Number,Room Number,Room Type,Infection Status,Exposure List");
                 foreach (var log in logs)
                 {
                     string contacts;

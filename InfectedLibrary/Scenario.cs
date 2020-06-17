@@ -16,18 +16,24 @@ namespace InfectedLibrary
         public List<Building> Buildings { get; set; }
         public List<Log> Logs { get; set; }
 
+        private HashSet<string> EmployeeIds { get; set; }
+
         public Scenario()
         {
             Buildings = new List<Building>();
             Logs = new List<Log>();
+            EmployeeIds = new HashSet<string>();
         }
 
         public bool RunScenario()
         {
-            Messages = string.Empty;
             var messages = new StringBuilder();
-            Logs = new List<Log>();
+            var rnd = new Random(Guid.NewGuid().GetHashCode());
 
+            Messages = string.Empty;
+            Logs.Clear();
+            EmployeeIds.Clear();
+            
             // make sure there is at least one building for the scenario; if not, use the default scenario
             if (Buildings.Count == 0)
             {
@@ -64,11 +70,20 @@ namespace InfectedLibrary
                 // start workday time at 8a
                 var timeOfDay = new DateTime(StartDate.Year, StartDate.Month, StartDate.Day, 8, 0, 0).TimeOfDay;
                 
-                while (timeOfDay.Hours < 16)
+                while (timeOfDay.Hours < 17)
                 {
+                    // migrate people to meeting rooms
 
-                    // everyone has to make a log entry
-                    MakeLogEntries(StartDate, timeOfDay);
+
+                    if (timeOfDay.Hours == 12)
+                    {
+                        // only people in lunch rooms need to make a log entry
+                    }
+                    else
+                    {
+                        // everyone has to make a log entry
+                        MakeLogEntries(StartDate, timeOfDay);
+                    }
 
                     timeOfDay += TimeSpan.FromHours(1);
                 }
