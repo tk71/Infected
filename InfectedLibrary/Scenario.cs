@@ -50,8 +50,8 @@ namespace InfectedLibrary
                     var employee = EmployeeGenerator.NewEmployee();
                     if (!employeeIdValidation.Add(employee.Id)) continue;
 
-                    employee.AssignedRoom = offices[roomIndex];
-                    employee.CurrentRoom = employee.AssignedRoom;
+                    employee.AssignedLocation = offices[roomIndex];
+                    employee.CurrentLocation = employee.AssignedLocation;
                     employee.Location = Locations.Office;
                     if (!patientZero)
                     {
@@ -75,30 +75,29 @@ namespace InfectedLibrary
 
             foreach (var employee in _employee)
             {
+                // only employees in an office, breakroom or meeting and haver a status of well can be infected
                 if (employee.Location == Locations.Hospital || employee.Location == Locations.Testing ||
-                    (employee.Status != InfectionState.Immune && employee.Status != InfectionState.Well)) continue;
+                    employee.Status != InfectionState.Well) continue;
 
                 if (isLunchtime)
                 {
                     // only check breakrooms
                     if (employee.Location == Locations.Breakroom)
                     {
-                        _employee.Where(contact => contact.CurrentRoom == employee.CurrentRoom &&
-                            contact.Status != InfectionState.Immune && contact.Status != InfectionState.Well).ToList().
-                                ForEach(contact =>
-                                {
-                                    if (rnd.Next(0, 101) * 0.01f < employee.ChanceOfInfection) employee.Status = InfectionState.Infected;
-                                });
-                    }
-                }
-                else
-                {
-                    _employee.Where(contact => contact.CurrentRoom == employee.CurrentRoom &&
-                        contact.Status != InfectionState.Immune && contact.Status != InfectionState.Well).ToList().
+                        _employee.Where(contact => contact.CurrentLocation == employee.CurrentLocation && contact.Infected).ToList().
                             ForEach(contact =>
                             {
                                 if (rnd.Next(0, 101) * 0.01f < employee.ChanceOfInfection) employee.Status = InfectionState.Infected;
                             });
+                    }
+                }
+                else
+                {
+                    _employee.Where(contact => contact.CurrentLocation == employee.CurrentLocation && contact.Infected).ToList().
+                        ForEach(contact =>
+                        {
+                            if (rnd.Next(0, 101) * 0.01f < employee.ChanceOfInfection) employee.Status = InfectionState.Infected;
+                        });
                 }
             }
         }
@@ -106,32 +105,35 @@ namespace InfectedLibrary
         private void Migration(bool isLunchtime)
         {
             var rnd = new Random(Guid.NewGuid().GetHashCode());
+            var eligibleEmployees = _employee.Where(employee => employee.Location == Locations.Office).ToList();
 
             var floorNumber = 1;
             foreach (var floor in Floors)
             {
                 if (isLunchtime)
                 {
-                    var rooms = new List<string>();
+                    if (floor.Breakrooms == 0) continue;
 
-                    float breakroomUsage = 0.0f;
+                    var rooms = new List<string>();
                     for (int i = 0; i < floor.Breakrooms; i++)
                     {
                         rooms.Add("Breakroom " + floorNumber + ((char)(i + 65)).ToString());
-                        breakroomUsage += floor.EmployeesAssigned;
                     }
-                    breakroomUsage *= .25f; // 25% of employees will use breakrooms
+
+                    var breakroomUsage = eligibleEmployees.Count * 0.25f;// 25% of eligible employees will use breakrooms
 
                     var employees = 0;
                     var roomIndex = 0;
                     while (employees < breakroomUsage)
                     {
-                        var employee = _employee[rnd.Next(0, _employee.Count)];
-                        if (employee.Location == Locations.Breakroom || employee.Location == Locations.Hospital ||
-                            employee.Location == Locations.Testing) continue;
+                        var employee = eligibleEmployees[rnd.Next(0, eligibleEmployees.Count)];
+                        if (employee.Location == Locations.Breakroom) continue;
 
-                        employee.CurrentRoom = rooms[roomIndex];
+                        employee.CurrentLocation = rooms[roomIndex];
                         employee.Location = Locations.Breakroom;
+
+                        eligibleEmployees = eligibleEmployees.Where(eligible => eligible.Location == Locations.Office).ToList();
+                        if (eligibleEmployees.Count == 0) break;
 
                         employees++;
                         roomIndex++;
@@ -140,6 +142,8 @@ namespace InfectedLibrary
                 }
                 else
                 {
+                    if (floor.MeetingRooms == 0) continue;
+
                     var rooms = new List<Tuple<string, int>>();
                     for (int i = 0; i < floor.MeetingRooms; i++)
                     {
@@ -151,12 +155,14 @@ namespace InfectedLibrary
                         var employees = 0;
                         while (employees < room.Item2)
                         {
-                            var employee = _employee[rnd.Next(0, _employee.Count)];
-                            if (employee.Location == Locations.Meeting || employee.Location == Locations.Hospital ||
-                                employee.Location == Locations.Testing) continue;
+                            var employee = eligibleEmployees[rnd.Next(0, eligibleEmployees.Count)];
+                            if (employee.Location == Locations.Meeting) continue;
 
-                            employee.CurrentRoom = room.Item1;
+                            employee.CurrentLocation = room.Item1;
                             employee.Location = Locations.Meeting;
+
+                            eligibleEmployees = eligibleEmployees.Where(eligible => eligible.Location == Locations.Office).ToList();
+                            if (eligibleEmployees.Count == 0) break;
 
                             employees++;
                         }
@@ -171,30 +177,30 @@ namespace InfectedLibrary
         {
             foreach (var employee in _employee)
             {
-                // employees in the hospital or in-testing do not need to make a log entry; if lunch only employees in break rooms need to make a log entry
+                // employees in the hospital or in-testing do not need to make a log entry; if lunch, only employees in a break room need to make a log entry
                 if (employee.Location == Locations.Hospital || employee.Location == Locations.Testing || 
                     (timeOfDay.Hours == _lunchtime && employee.Location != Locations.Breakroom)) continue;
 
-                string roomType;
+                string locationType;
                 switch (employee.Location)
                 {
                     case Locations.Breakroom:
-                        roomType = "Breakroom";
+                        locationType = "Breakroom";
                         break;
                     case Locations.Hospital:
-                        roomType = "Hospital";
+                        locationType = "Hospital";
                         break;
                     case Locations.Meeting:
-                        roomType = "Meeting";
+                        locationType = "Meeting";
                         break;
                     case Locations.Office:
-                        roomType = "Office";
+                        locationType = "Office";
                         break;
                     case Locations.Testing:
-                        roomType = "Testing";
+                        locationType = "Testing";
                         break;
                     default:
-                        roomType = string.Empty;
+                        locationType = string.Empty;
                         break;
                 }
 
@@ -227,16 +233,16 @@ namespace InfectedLibrary
                     Id = employee.Id,
                     FirstName = employee.FirstName,
                     LastName = employee.LastName,
-                    Sex = employee.Sex, 
-                    CurrentRoom = employee.CurrentRoom,
-                    CurrentRoomType = roomType,
+                    Sex = employee.Sex,
+                    CurrentLocation = employee.CurrentLocation,
+                    CurrentLocationType = locationType,
                     Status = status
                 };
 
                 // contacts will be employees in the same room
                 foreach (var contact in _employee)
                 {
-                    if (employee.Id != contact.Id && employee.CurrentRoom == contact.CurrentRoom) log.Contacts.Add(new Contact()
+                    if (employee.Id != contact.Id && employee.CurrentLocation == contact.CurrentLocation) log.Contacts.Add(new Contact()
                     {
                         Id = contact.Id, 
                         FirstName = contact.FirstName, 
@@ -284,28 +290,18 @@ namespace InfectedLibrary
             // loop through days; Mon-Fri are workdays
             while (StartDate.Date != EndDate.Date)
             {
-                if (StartDate.DayOfWeek == DayOfWeek.Saturday || StartDate.DayOfWeek == DayOfWeek.Sunday)
-                {
-                    StartDate = StartDate.AddDays(1);
-                    continue;
-                }
-
-                // start workday time at 8a
-                var timeOfDay = new DateTime(StartDate.Year, StartDate.Month, StartDate.Day, 8, 0, 0).TimeOfDay;
-
                 // if anyone is symptomatic, check to see if they decide to get tested
-                _employee.Where(employee => employee.Location != Locations.Hospital && employee.Location != Locations.Testing &&
-                    employee.Status == InfectionState.Symptomatic).ToList().
-                        ForEach(employee => 
+                _employee.Where(employee => employee.Location != Locations.Hospital && employee.Location != Locations.Testing && employee.Status == InfectionState.Symptomatic).ToList().
+                    ForEach(employee => 
+                    {
+                        if (rnd.Next(0, 101) * 0.01f <= 0.35f)
                         {
-                            if (rnd.Next(0, 101) * 0.01f <= 0.35f)
-                            {
-                                employee.Location = Locations.Testing;
-                                employee.TreatmentCount = 1;
-                            }
-                        });
+                            employee.Location = Locations.Testing;
+                            employee.TreatmentCount = 1;
+                        }
+                    });
 
-                // if anyone was being test and is at day 5 of testing, check to see if they go back to work or the hospital
+                // if anyone was being tested and is at day 5 of testing, check to see if they go back to work or the hospital
                 _employee.Where(employee => employee.Location == Locations.Testing && employee.TreatmentCount == 3).ToList().
                     ForEach(employee =>
                     {
@@ -320,36 +316,59 @@ namespace InfectedLibrary
                         }
                     });
 
-                // anyone that has been in the hospital 5 days can go back to work and is considered immune
+                // if anyone was in the hospital 5 days, they can go back to work and is considered immune
                 _employee.Where(employee => employee.Location == Locations.Hospital &&  employee.TreatmentCount == 5).ToList().
                     ForEach(employee =>
                     {
-                        employee.CurrentRoom = employee.AssignedRoom;
+                        employee.CurrentLocation = employee.AssignedLocation;
                         employee.Location = Locations.Office;
                         employee.Status = InfectionState.Immune;
                     });
 
-                // this loop is where the workday processing happens
-                while (timeOfDay.Hours < 17)
+                // start workday time at 8a
+                var timeOfDay = new DateTime(StartDate.Year, StartDate.Month, StartDate.Day, 8, 0, 0).TimeOfDay;
+
+                if (StartDate.DayOfWeek != DayOfWeek.Saturday && StartDate.DayOfWeek != DayOfWeek.Sunday)
                 {
-                    // migrate employees to breakrooms or meeting rooms
-                    Migration(timeOfDay.Hours == _lunchtime);
+                    // this loop is where the workday processing happens
+                    while (timeOfDay.Hours < 17)
+                    {
+                        // migrate employees to breakrooms or meeting rooms
+                        Migration(timeOfDay.Hours == _lunchtime);
 
-                    // check to see whether anyone becomes infected
-                    Infection(timeOfDay.Hours == _lunchtime);
+                        // check to see whether anyone becomes infected
+                        Infection(timeOfDay.Hours == _lunchtime);
 
-                    // record logs
-                    RecordLogEntries(StartDate, timeOfDay);
+                        // record logs
+                        RecordLogEntries(StartDate, timeOfDay);
 
-                    // put migrated employees back in thier offices
-                    _employee.Where(employee => employee.Location == Locations.Breakroom || employee.Location == Locations.Meeting).ToList().
-                        ForEach(employee =>
-                        {
-                            employee.CurrentRoom = employee.AssignedRoom;
-                            employee.Location = Locations.Office;
-                        });
+                        var well = _employee.Where(employee => employee.Status == InfectionState.Well).ToList();
+                        var infected = _employee.Where(employee => employee.Status == InfectionState.Infected).ToList();
+                        var incubating = _employee.Where(employee => employee.Status == InfectionState.Incubation).ToList();
+                        var symptomatic = _employee.Where(employee => employee.Status == InfectionState.Symptomatic).ToList();
+                        var immune = _employee.Where(employee => employee.Status == InfectionState.Immune).ToList();
+                        var office = _employee.Where(employee => employee.Location == Locations.Office).ToList();
+                        var breakroom = _employee.Where(employee => employee.Location == Locations.Breakroom).ToList();
+                        var meeting = _employee.Where(employee => employee.Location == Locations.Meeting).ToList();
+                        var testing = _employee.Where(employee => employee.Location == Locations.Testing).ToList();
+                        var hospital = _employee.Where(employee => employee.Location == Locations.Hospital).ToList();
+                        Debug.WriteLine(StartDate.ToString("MM-dd-yyyy") + " " + timeOfDay.ToString() + " " +
+                            " well: " + well.Count.ToString().PadLeft(3, '0') + " infected: " + infected.Count.ToString().PadLeft(3, '0') +
+                            " incubating: " + incubating.Count.ToString().PadLeft(3, '0') + " symptomatic: " + symptomatic.Count.ToString().PadLeft(3, '0') +
+                            " immune: " + immune.Count.ToString().PadLeft(3, '0') + " office: " + office.Count.ToString().PadLeft(3, '0') +
+                            " breakroom: " + breakroom.Count.ToString().PadLeft(3, '0') + " meeting: " + meeting.Count.ToString().PadLeft(3, '0') +
+                            " testing: " + testing.Count.ToString().PadLeft(3, '0') + " hospital: " + hospital.Count.ToString().PadLeft(3, '0'));
 
-                    timeOfDay += TimeSpan.FromHours(1);
+                        // put migrated employees back in thier offices
+                        _employee.Where(employee => employee.Location == Locations.Breakroom || employee.Location == Locations.Meeting).ToList().
+                            ForEach(employee =>
+                            {
+                                employee.CurrentLocation = employee.AssignedLocation;
+                                employee.Location = Locations.Office;
+                            });
+
+                        timeOfDay += TimeSpan.FromHours(1);
+                    }
                 }
 
                 // anyone being tested gets credit for a day
@@ -360,8 +379,9 @@ namespace InfectedLibrary
                 _employee.Where(employee => employee.Location == Locations.Hospital).ToList().
                     ForEach(employee => employee.TreatmentCount++);
 
-                // anyone sick get credit for a day and might progess to the next stage
-
+                // anyone sick gets credit for a day and might progess to the next stage
+                _employee.Where(employee => employee.Infected).ToList().
+                    ForEach(employee => employee.InfectionProgression());
 
                 StartDate = StartDate.AddDays(1);
             }

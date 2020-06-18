@@ -92,7 +92,7 @@ namespace Infected
                     }
                     sw.WriteLine(log.Created.ToString("MM-dd-yyyy") + "," + log.Created.ToString("hh:mm tt") + "," + 
                         log.Id + "," + log.FirstName + ","+ log.LastName + "," + log.Sex + "," +
-                        log.CurrentRoom + "," + log.CurrentRoomType + "," + log.Status + "," + contacts);
+                        log.CurrentLocation + "," + log.CurrentLocationType + "," + log.Status + "," + contacts);
                 }
             }
         }

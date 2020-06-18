@@ -9,8 +9,8 @@ namespace InfectedLibrary.Models
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string Sex { get; set; }
-        public string AssignedRoom { get; set; }
-        public string CurrentRoom { get; set; }
+        public string AssignedLocation { get; set; }
+        public string CurrentLocation { get; set; }
         public Locations Location { get; set; }
         public float ChanceOfInfection { get; set; }
         public int InfectionTime { get; set; }
@@ -51,10 +51,32 @@ namespace InfectedLibrary.Models
                 }
             } 
         }
+        public bool Infected
+        {
+            get { return (status != InfectionState.Well && status != InfectionState.Immune); }
+        }
 
         public void InfectionProgression()
         {
-
+            InfectionCount++;
+            switch (Status)
+            {
+                case InfectionState.Well:
+                    break;
+                case InfectionState.Infected:
+                    if (InfectionCount == InfectionTime) Status = InfectionState.Incubation;
+                    break;
+                case InfectionState.Incubation:
+                    if (InfectionCount == IncubationTime) Status = InfectionState.Symptomatic;
+                    break;
+                case InfectionState.Symptomatic:
+                    if (InfectionCount == SymptomaticTime) Status = InfectionState.Immune;
+                    break;
+                case InfectionState.Immune:
+                    break;
+                default:
+                    break;
+            }
         }
     }
 }

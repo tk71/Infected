@@ -10,8 +10,8 @@ namespace InfectedLibrary.Models
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string Sex { get; set; }
-        public string CurrentRoom { get; set; }
-        public string CurrentRoomType { get; set; }
+        public string CurrentLocation { get; set; }
+        public string CurrentLocationType { get; set; }
         public string Status { get; set; }
         public List<Contact> Contacts { get; set; }
 
