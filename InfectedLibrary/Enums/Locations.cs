@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace InfectedLibrary.Models
+namespace InfectedLibrary.Enums
 {
-    internal enum RoomType
+    internal enum Locations
     {
         Breakroom,
         Hospital,

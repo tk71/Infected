@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace InfectedLibrary.Models
+namespace InfectedLibrary.Enums
 {
     internal enum InfectionState
     {

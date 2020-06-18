@@ -1,4 +1,5 @@
 ﻿using System;
+using InfectedLibrary.Enums;
 
 namespace InfectedLibrary.Models
 {
@@ -10,12 +11,13 @@ namespace InfectedLibrary.Models
         public string Sex { get; set; }
         public string AssignedRoom { get; set; }
         public string CurrentRoom { get; set; }
-        public RoomType CurrentRoomType { get; set; }
+        public Locations Location { get; set; }
         public float ChanceOfInfection { get; set; }
         public int InfectionTime { get; set; }
         public int IncubationTime { get; set; }
         public int SymptomaticTime { get; set; }
-        public int DaysSick { get; set; }
+        public int InfectionCount { get; set; }
+        public int TreatmentCount { get; set; }
         private InfectionState status;
         public InfectionState Status { 
             get { return status; }
@@ -26,17 +28,19 @@ namespace InfectedLibrary.Models
                 switch (status)
                 {
                     case InfectionState.Well:
-                        ChanceOfInfection = 0.02f;
+                        ChanceOfInfection = 0.2f;
                         break;
                     case InfectionState.Infected:
-                        DaysSick = 1;
+                        InfectionCount = 1;
                         InfectionTime = 3;
                         break;
                     case InfectionState.Incubation:
+                        InfectionCount = 1;
                         rnd = new Random(Guid.NewGuid().GetHashCode());
                         IncubationTime = rnd.Next(3, 8);
                         break;
                     case InfectionState.Symptomatic:
+                        InfectionCount = 1;
                         rnd = new Random(Guid.NewGuid().GetHashCode());
                         SymptomaticTime = rnd.Next(6, 12);
                         break;
@@ -46,6 +50,11 @@ namespace InfectedLibrary.Models
                         break;
                 }
             } 
+        }
+
+        public void InfectionProgression()
+        {
+
         }
     }
 }

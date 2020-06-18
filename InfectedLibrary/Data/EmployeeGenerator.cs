@@ -1,4 +1,5 @@
 ﻿using System;
+using InfectedLibrary.Enums;
 using InfectedLibrary.Models;
 
 namespace InfectedLibrary.Data
