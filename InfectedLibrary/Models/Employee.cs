@@ -13,6 +13,7 @@ namespace InfectedLibrary.Models
         public string CurrentLocation { get; set; }
         public Locations Location { get; set; }
         public float ChanceOfInfection { get; set; }
+        public float InfectedPercent { get; set; }
         public int InfectionTime { get; set; }
         public int IncubationTime { get; set; }
         public int SymptomaticTime { get; set; }
@@ -28,7 +29,6 @@ namespace InfectedLibrary.Models
                 switch (status)
                 {
                     case InfectionState.Well:
-                        ChanceOfInfection = 0.2f;
                         break;
                     case InfectionState.Infected:
                         InfectionCount = 1;

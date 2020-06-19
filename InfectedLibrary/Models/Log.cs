@@ -10,6 +10,8 @@ namespace InfectedLibrary.Models
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public string Sex { get; set; }
+        public float ChanceOfInfection { get; set; }
+        public float InfectedPercent { get; set; }
         public string CurrentLocation { get; set; }
         public string CurrentLocationType { get; set; }
         public string Status { get; set; }

@@ -98,7 +98,7 @@ namespace InfectedLibrary.Data
                 "MARSH","MCBRIDE","OWEN","SOLIS","PHAM","LANG","PRATT"};
         }
 
-        public static Employee NewEmployee()
+        public static Employee NewEmployee(bool VariableInfectionRate)
         {
             var rnd = new Random(Guid.NewGuid().GetHashCode());
             var sex = rnd.Next(0, 2) == 0 ? "F" : "M";
@@ -112,7 +112,8 @@ namespace InfectedLibrary.Data
                 FirstName = fname,
                 LastName = lname,
                 Sex = sex,
-                Status = InfectionState.Well
+                Status = InfectionState.Well,
+                ChanceOfInfection = VariableInfectionRate ? rnd.Next(28, 75) * 0.001f : 0.2f
             };
         }
     }

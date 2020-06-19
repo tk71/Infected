@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using InfectedLibrary.Data;
 using InfectedLibrary.Enums;
 using InfectedLibrary.Models;
@@ -14,12 +13,12 @@ namespace InfectedLibrary
         public List<Floor> Floors { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public string Messages { get; set; }
+        public bool VariableInfectionRate { get; set; }
         public List<Log> Logs { get; set; }
 
         private List<Employee> _employee { get; set; }
         private const int _lunchtime = 12;
-
+        
         public Scenario()
         {
             Floors = new List<Floor>();
@@ -47,13 +46,13 @@ namespace InfectedLibrary
                 var roomIndex = 0;
                 while (employees < floor.EmployeesAssigned)
                 {
-                    var employee = EmployeeGenerator.NewEmployee();
+                    var employee = EmployeeGenerator.NewEmployee(VariableInfectionRate);
                     if (!employeeIdValidation.Add(employee.Id)) continue;
 
                     employee.AssignedLocation = offices[roomIndex];
                     employee.CurrentLocation = employee.AssignedLocation;
                     employee.Location = Locations.Office;
-                    if (!patientZero)
+                    if (!patientZero && floorNumber == 3)
                     {
                         employee.Status = InfectionState.Infected;
                         patientZero = true;
@@ -72,7 +71,7 @@ namespace InfectedLibrary
         private void Infection(bool isLunchtime)
         {
             var rnd = new Random(Guid.NewGuid().GetHashCode());
-
+            var start = _employee.Where(employee => employee.Infected).ToList().Count;
             foreach (var employee in _employee)
             {
                 // only employees in an office, breakroom or meeting and haver a status of well can be infected
@@ -87,7 +86,13 @@ namespace InfectedLibrary
                         _employee.Where(contact => contact.CurrentLocation == employee.CurrentLocation && contact.Infected).ToList().
                             ForEach(contact =>
                             {
-                                if (rnd.Next(0, 101) * 0.01f < employee.ChanceOfInfection) employee.Status = InfectionState.Infected;
+                                var roll = rnd.Next(0, 101) * 0.01f;
+                                //Debug.WriteLine("roll: " + roll + " roi: " + employee.ChanceOfInfection + " infected: " + (roll < employee.ChanceOfInfection));
+                                if (roll < employee.ChanceOfInfection)
+                                {
+                                    employee.Status = InfectionState.Infected;
+                                    employee.InfectedPercent = roll;
+                                }
                             });
                     }
                 }
@@ -96,16 +101,24 @@ namespace InfectedLibrary
                     _employee.Where(contact => contact.CurrentLocation == employee.CurrentLocation && contact.Infected).ToList().
                         ForEach(contact =>
                         {
-                            if (rnd.Next(0, 101) * 0.01f < employee.ChanceOfInfection) employee.Status = InfectionState.Infected;
+                            var roll = rnd.Next(0, 101) * 0.01f;
+                            //Debug.WriteLine("roll: " + roll + " roi: " + employee.ChanceOfInfection + " infected: " + (roll < employee.ChanceOfInfection));
+                            if (roll < employee.ChanceOfInfection)
+                            {
+                                employee.Status = InfectionState.Infected;
+                                employee.InfectedPercent = roll;
+                            }
                         });
                 }
             }
+            //Debug.WriteLine("start " + start + " finish " + _employee.Where(employee => employee.Infected).ToList().Count);
         }
 
         private void Migration(bool isLunchtime)
         {
             var rnd = new Random(Guid.NewGuid().GetHashCode());
             var eligibleEmployees = _employee.Where(employee => employee.Location == Locations.Office).ToList();
+            if (eligibleEmployees.Count == 0) return;
 
             var floorNumber = 1;
             foreach (var floor in Floors)
@@ -234,6 +247,8 @@ namespace InfectedLibrary
                     FirstName = employee.FirstName,
                     LastName = employee.LastName,
                     Sex = employee.Sex,
+                    ChanceOfInfection = employee.ChanceOfInfection,
+                    InfectedPercent = employee.InfectedPercent,
                     CurrentLocation = employee.CurrentLocation,
                     CurrentLocationType = locationType,
                     Status = status
@@ -256,17 +271,15 @@ namespace InfectedLibrary
 
         public bool RunScenario()
         {
-            var messages = new StringBuilder();
             var rnd = new Random(Guid.NewGuid().GetHashCode());
 
-            Messages = string.Empty;
             Logs.Clear();
             _employee.Clear();
 
             // make sure there is at least one floor for the scenario; if not, use the default scenario
             if (Floors.Count == 0)
             {
-                messages.Append("Floor count was zero. Default scenario was used." + Environment.NewLine);
+                Debug.WriteLine("Floor count was zero. Default scenario was used.");
                 Floors = Defaults.Floors();
             }
 
@@ -274,14 +287,14 @@ namespace InfectedLibrary
             if (StartDate == DateTime.MinValue)
             {
                 StartDate = DateTime.Now;
-                messages.Append("Start date was missing. " + StartDate.ToString("MM-dd-yyyy") + " was used." + Environment.NewLine);
+                Debug.WriteLine("Start date was missing. " + StartDate.ToString("MM-dd-yyyy") + " was used.");
             }
 
             // if no end date or end date is less than start date, default to 4 months in the future
             if (EndDate == DateTime.MinValue || EndDate.Date < StartDate.Date)
             {
                 EndDate = StartDate.AddMonths(4);
-                messages.Append("End date was missing or less than start date. " + EndDate.ToString("MM-dd-yyyy") + " was used." + Environment.NewLine);
+                Debug.WriteLine("End date was missing or less than start date. " + EndDate.ToString("MM-dd-yyyy") + " was used.");
             }
 
             // build the screnario
@@ -342,22 +355,23 @@ namespace InfectedLibrary
                         // record logs
                         RecordLogEntries(StartDate, timeOfDay);
 
-                        var well = _employee.Where(employee => employee.Status == InfectionState.Well).ToList();
-                        var infected = _employee.Where(employee => employee.Status == InfectionState.Infected).ToList();
-                        var incubating = _employee.Where(employee => employee.Status == InfectionState.Incubation).ToList();
-                        var symptomatic = _employee.Where(employee => employee.Status == InfectionState.Symptomatic).ToList();
-                        var immune = _employee.Where(employee => employee.Status == InfectionState.Immune).ToList();
-                        var office = _employee.Where(employee => employee.Location == Locations.Office).ToList();
-                        var breakroom = _employee.Where(employee => employee.Location == Locations.Breakroom).ToList();
-                        var meeting = _employee.Where(employee => employee.Location == Locations.Meeting).ToList();
-                        var testing = _employee.Where(employee => employee.Location == Locations.Testing).ToList();
-                        var hospital = _employee.Where(employee => employee.Location == Locations.Hospital).ToList();
-                        Debug.WriteLine(StartDate.ToString("MM-dd-yyyy") + " " + timeOfDay.ToString() + " " +
-                            " well: " + well.Count.ToString().PadLeft(3, '0') + " infected: " + infected.Count.ToString().PadLeft(3, '0') +
-                            " incubating: " + incubating.Count.ToString().PadLeft(3, '0') + " symptomatic: " + symptomatic.Count.ToString().PadLeft(3, '0') +
-                            " immune: " + immune.Count.ToString().PadLeft(3, '0') + " office: " + office.Count.ToString().PadLeft(3, '0') +
-                            " breakroom: " + breakroom.Count.ToString().PadLeft(3, '0') + " meeting: " + meeting.Count.ToString().PadLeft(3, '0') +
-                            " testing: " + testing.Count.ToString().PadLeft(3, '0') + " hospital: " + hospital.Count.ToString().PadLeft(3, '0'));
+                        // for testing
+                        //var well = _employee.Where(employee => employee.Status == InfectionState.Well).ToList();
+                        //var infected = _employee.Where(employee => employee.Status == InfectionState.Infected).ToList();
+                        //var incubating = _employee.Where(employee => employee.Status == InfectionState.Incubation).ToList();
+                        //var symptomatic = _employee.Where(employee => employee.Status == InfectionState.Symptomatic).ToList();
+                        //var immune = _employee.Where(employee => employee.Status == InfectionState.Immune).ToList();
+                        //var office = _employee.Where(employee => employee.Location == Locations.Office).ToList();
+                        //var breakroom = _employee.Where(employee => employee.Location == Locations.Breakroom).ToList();
+                        //var meeting = _employee.Where(employee => employee.Location == Locations.Meeting).ToList();
+                        //var testing = _employee.Where(employee => employee.Location == Locations.Testing).ToList();
+                        //var hospital = _employee.Where(employee => employee.Location == Locations.Hospital).ToList();
+                        //Debug.WriteLine(StartDate.ToString("MM-dd-yyyy") + " " + timeOfDay.ToString() + " " +
+                        //    " well: " + well.Count.ToString().PadLeft(3, '0') + " infected: " + infected.Count.ToString().PadLeft(3, '0') +
+                        //    " incubating: " + incubating.Count.ToString().PadLeft(3, '0') + " symptomatic: " + symptomatic.Count.ToString().PadLeft(3, '0') +
+                        //    " immune: " + immune.Count.ToString().PadLeft(3, '0') + " office: " + office.Count.ToString().PadLeft(3, '0') +
+                        //    " breakroom: " + breakroom.Count.ToString().PadLeft(3, '0') + " meeting: " + meeting.Count.ToString().PadLeft(3, '0') +
+                        //    " testing: " + testing.Count.ToString().PadLeft(3, '0') + " hospital: " + hospital.Count.ToString().PadLeft(3, '0'));
 
                         // put migrated employees back in thier offices
                         _employee.Where(employee => employee.Location == Locations.Breakroom || employee.Location == Locations.Meeting).ToList().
@@ -386,8 +400,6 @@ namespace InfectedLibrary
                 StartDate = StartDate.AddDays(1);
             }
 
-            Messages = messages.ToString();
-            Debug.WriteLine(Messages);
             return true;
         }
     }
