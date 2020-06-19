@@ -42,7 +42,10 @@
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.dtEnd = new System.Windows.Forms.DateTimePicker();
+            this.numGroundZero = new System.Windows.Forms.NumericUpDown();
+            this.label3 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.dgvScenario)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numGroundZero)).BeginInit();
             this.SuspendLayout();
             // 
             // btnRun
@@ -167,11 +170,29 @@
             this.dtEnd.Size = new System.Drawing.Size(200, 20);
             this.dtEnd.TabIndex = 13;
             // 
+            // numGroundZero
+            // 
+            this.numGroundZero.Location = new System.Drawing.Point(351, 260);
+            this.numGroundZero.Name = "numGroundZero";
+            this.numGroundZero.Size = new System.Drawing.Size(53, 20);
+            this.numGroundZero.TabIndex = 14;
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(232, 262);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(113, 13);
+            this.label3.TabIndex = 15;
+            this.label3.Text = "Infection Starting Floor";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(752, 359);
+            this.Controls.Add(this.label3);
+            this.Controls.Add(this.numGroundZero);
             this.Controls.Add(this.dtEnd);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
@@ -192,6 +213,7 @@
             this.Text = "Infection";
             this.Load += new System.EventHandler(this.Form1_Load);
             ((System.ComponentModel.ISupportInitialize)(this.dgvScenario)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numGroundZero)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -213,6 +235,8 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.DateTimePicker dtEnd;
+        private System.Windows.Forms.NumericUpDown numGroundZero;
+        private System.Windows.Forms.Label label3;
     }
 }
 

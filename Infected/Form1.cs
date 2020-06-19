@@ -103,6 +103,11 @@ namespace Infected
             dgvScenario.DataSource = _bindingSource;
             dgvScenario.AutoResizeColumns(DataGridViewAutoSizeColumnsMode.AllCells);
 
+            // infection starting floor
+            numGroundZero.Maximum = _bindingSource.Count;
+            if (numGroundZero.Maximum > 0) numGroundZero.Value = 1;
+            numGroundZero.Minimum = 1;
+
             // save file dialog settings
             saveFileDialog1.Filter = "Comma Separated File|CSV";
             saveFileDialog1.FileName = "output.csv";
@@ -118,6 +123,7 @@ namespace Infected
         private void btnAddFloor_Click(object sender, EventArgs e)
         {
             _bindingSource.Add(new Floor());
+            numGroundZero.Maximum = _bindingSource.Count;
         }
 
         private void btnDeleteFloor_Click(object sender, EventArgs e)
@@ -126,6 +132,7 @@ namespace Infected
             var selected = dgvScenario.CurrentCell.RowIndex;
             if (selected == -1) return;
             _bindingSource.RemoveAt(selected);
+            numGroundZero.Maximum = _bindingSource.Count;
         }
 
         private void btnSave_Click(object sender, EventArgs e)
@@ -171,6 +178,7 @@ namespace Infected
             _scenario.StartDate = dtStart.Value;
             _scenario.EndDate = dtEnd.Value;
             _scenario.VariableInfectionRate = chkVariableRate.Checked;
+            _scenario.InfectionStartingFloor = Convert.ToInt32(numGroundZero.Value);
 
             btnAddFloor.Enabled = false;
             btnDefaults.Enabled = false;

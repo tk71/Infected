@@ -14,6 +14,7 @@ namespace InfectedLibrary
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public bool VariableInfectionRate { get; set; }
+        public int InfectionStartingFloor { get; set; }
         public List<Log> Logs { get; set; }
 
         private List<Employee> _employee { get; set; }
@@ -52,7 +53,7 @@ namespace InfectedLibrary
                     employee.AssignedLocation = offices[roomIndex];
                     employee.CurrentLocation = employee.AssignedLocation;
                     employee.Location = Locations.Office;
-                    if (!patientZero && floorNumber == 3)
+                    if (!patientZero && floorNumber == InfectionStartingFloor)
                     {
                         employee.Status = InfectionState.Infected;
                         patientZero = true;
@@ -111,7 +112,7 @@ namespace InfectedLibrary
                         });
                 }
             }
-            //Debug.WriteLine("start " + start + " finish " + _employee.Where(employee => employee.Infected).ToList().Count);
+            //Debug.WriteLine("start " + start + " finish " + _employee.Where(employee => employee.Infected).ToList().Count + (isLunchtime ? " L" : string.Empty));
         }
 
         private void Migration(bool isLunchtime)
@@ -134,6 +135,7 @@ namespace InfectedLibrary
                     }
 
                     var breakroomUsage = eligibleEmployees.Count * 0.25f;// 25% of eligible employees will use breakrooms
+                    //Debug.WriteLine("total " + eligibleEmployees.Count + " lunchrooms " + breakroomUsage);
 
                     var employees = 0;
                     var roomIndex = 0;
@@ -296,6 +298,9 @@ namespace InfectedLibrary
                 EndDate = StartDate.AddMonths(4);
                 Debug.WriteLine("End date was missing or less than start date. " + EndDate.ToString("MM-dd-yyyy") + " was used.");
             }
+
+            // if infection starting floor is greater than scenario floors, adjust down
+            if (InfectionStartingFloor > Floors.Count) InfectionStartingFloor = Floors.Count;
 
             // build the screnario
             BuildScenario();
